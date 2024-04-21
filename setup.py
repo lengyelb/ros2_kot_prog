@@ -20,7 +20,9 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'hello = ros2_kot_prog.hello:main'
+            'psm_grasp = ros2_kot_prog.psm_grasp:main',
+            'dummy_marker = ros2_kot_prog.dummy_marker:main',
+            'interactive_marker = ros2_kot_prog.interactive_marker:main'
         ],
     },
 )
