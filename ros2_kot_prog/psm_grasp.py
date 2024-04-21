@@ -16,6 +16,8 @@ class PSM(Node):
         self.Jaw: JointState = None
         self.Marker: Marker = None
 
+        self.tcp_offset = 0.008
+
         self.TCPSubscription = self.create_subscription(PoseStamped, '/PSM1/measured_cp', self.TCP_Callback, 10)
         self.JawSubscription = self.create_subscription(JointState, '/PSM1/jaw/measured_js', self.JAW_Callback,10) 
         self.DummyMarkerSubscription = self.create_subscription(Marker, 'dummy_target_marker',self.Marker_callback, 10)
@@ -54,12 +56,12 @@ class PSM(Node):
 
         distance = np.linalg.norm(pos_des_np-pos_curr_np)
         T = distance/v
-        N = math.floor(T / dt)
+        N = int(math.floor(T / dt))
         x = np.linspace(self.TCP.pose.position.x, target[0], N)
         y = np.linspace(self.TCP.pose.position.y, target[1], N)
         z = np.linspace(self.TCP.pose.position.z, target[2], N)
 
-        loop_rate = self.create_rate(100, self.get_clock()) # Hz
+        loop_rate = self.create_rate(1.0 / dt, self.get_clock()) # Hz
         for i in range(N):
             if(not rclpy.ok()):
                 break
@@ -99,28 +101,35 @@ class PSM(Node):
 
         self.move_tcp_to(target=[ self.Marker.pose.position.x,
                                   self.Marker.pose.position.y,
-                                  self.Marker.pose.position.z+0.008], v=v, dt=dt)
+                                  self.Marker.pose.position.z+self.tcp_offset], v=v, dt=dt)
         
         self.move_jaw_to(target=0.0, omega=omega, dt=dt)
+    
+    def move_marker_to(self, target, v, omega, dt):
+        self.grab_marker(v=v, omega=omega, dt=dt)
+        time.sleep(0.1)
+        self.move_tcp_to(target=target, v=v, dt=dt)
+        time.sleep(0.1)
+        self.move_jaw_to(target=0.8, omega=omega, dt=dt)
 
 def main(args=None):
     rclpy.init(args=args)
     psm = PSM()
 
+    v = 0.005
+    omega = 0.1
+    dt = 0.01
+    home = [0.0, 0.0, -0.12]
+
     #Reset the arm
-    psm.move_tcp_to([0.0, 0.0, -0.12], 0.01, 0.01)
-    psm.move_jaw_to(0.0, 0.1, 0.01)
+    psm.move_tcp_to(target=home, v=v, dt=dt)
+    psm.move_jaw_to(0.0, omega=omega, dt=dt)
 
     # wait one second
     time.sleep(1)
 
     # grab the marker
-    psm.grab_marker(v=0.01, omega=0.05, dt=0.01)
-
-    # wait three seconds
-    time.sleep(3)
-    # release the marker
-    psm.move_jaw_to(0.8, 0.1, 0.01)
+    psm.move_marker_to(target=home, v=v, omega=omega, dt=dt)
 
     psm.destroy_node()
     rclpy.shutdown()

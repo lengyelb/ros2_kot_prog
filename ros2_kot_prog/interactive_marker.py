@@ -13,12 +13,13 @@ class InteractiveMarker(Node):
         self.DVRK_Jaw: JointState = None
         self.grabbed = False
 
-        self.grab_error = 0.0001
+        self.grab_error = 0.002
+        self.tcp_offset = 0.008
 
         self.TCPSubscription = self.create_subscription(PoseStamped, '/PSM1/measured_cp', self.TCP_Callback, 10)
         self.JawSubscription = self.create_subscription(JointState, '/PSM1/jaw/measured_js', self.JAW_Callback,10)
 
-        timer_period = 0.1
+        timer_period = 0.05
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
         self.publisher_ = self.create_publisher(Marker, 'dummy_target_marker', 10)
@@ -49,36 +50,40 @@ class InteractiveMarker(Node):
 
     def JAW_Callback(self, msg):
         self.DVRK_Jaw = msg
-
-    def wait_for_Subscriptions(self):
-         # Wait for position to be received
-        loop_rate = self.create_rate(100, self.get_clock()) # Hz
-        while (self.DVRK_TCP is None or self.DVRK_Jaw is None ) and rclpy.ok():
-            self.get_logger().info('Waiting for subsriptions...')
-            rclpy.spin_once(self)
     
     def decide_grabbed(self):
-        dvrk_pos_np = np.array([self.DVRK_TCP.pose.position.x,
-                                self.DVRK_TCP.pose.position.y,
-                                self.DVRK_TCP.pose.position.z-0.008])
-        marker_pos_np = np.array([self.marker.pose.position.x,
-                                self.marker.pose.position.y,
-                                self.marker.pose.position.z])
-        
-        distance_to_marker = np.linalg.norm(dvrk_pos_np-marker_pos_np)
-
-        if(distance_to_marker <= self.grab_error):
+        if(self.grabbed):
+            self.get_logger().info('I am currently grabbed!')
             self.grabbed = self.DVRK_Jaw.position[0] == 0.0
+
+        else:
+            self.get_logger().info('I am currently not grabbed!')
+            dvrk_pos_np = np.array([self.DVRK_TCP.pose.position.x,
+                                    self.DVRK_TCP.pose.position.y,
+                                    self.DVRK_TCP.pose.position.z-self.tcp_offset])
+            marker_pos_np = np.array([self.marker.pose.position.x,
+                                    self.marker.pose.position.y,
+                                    self.marker.pose.position.z])
+            
+            distance_to_marker = np.linalg.norm(dvrk_pos_np-marker_pos_np)
+
+            self.get_logger().info(f"distance to tool = {distance_to_marker}")
+            if(distance_to_marker <= self.grab_error):
+                self.grabbed = self.DVRK_Jaw.position[0] == 0.0
 
 
     def timer_callback(self):
-        self.wait_for_Subscriptions()
-        self.decide_grabbed()
+        if (self.DVRK_TCP is not None and self.DVRK_Jaw is not None):
+            self.decide_grabbed()
 
         if(self.grabbed):
             self.marker.color.r = 0.0
             self.marker.color.g = 0.0
             self.marker.color.b = 1.0
+            
+            self.marker.pose.position.x = self.DVRK_TCP.pose.position.x
+            self.marker.pose.position.y = self.DVRK_TCP.pose.position.y
+            self.marker.pose.position.z = self.DVRK_TCP.pose.position.z-self.tcp_offset
         else:
             self.marker.color.r = 0.0
             self.marker.color.g = 1.0
