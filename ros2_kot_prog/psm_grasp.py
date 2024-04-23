@@ -154,7 +154,7 @@ def main(args=None):
     shape = "+"
 
     if(shape in shapes.keys()):
-        psm.draw_shape(shape="X", v=v, omega=omega, dt=dt)
+        psm.draw_shape(shape=shape, v=v, omega=omega, dt=dt)
     
     else:
         psm.get_logger().info('The provided shape is invalid')
