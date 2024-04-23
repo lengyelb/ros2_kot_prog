@@ -17,6 +17,7 @@ class MarkerFactory(Node):
         self.grab_error = 0.002
         self.tcp_offset = 0.008
         self.timeout = 2
+        
         self.last_press = self.get_clock().now() - rclpy.time.Duration(seconds=self.timeout)
         self.counter = 0
 

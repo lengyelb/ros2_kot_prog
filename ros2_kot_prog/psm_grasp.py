@@ -124,9 +124,9 @@ class PSM(Node):
     
     def move_marker_to(self, target, v, omega, dt):
         self.grab_marker(v=v, omega=omega, dt=dt)
-        time.sleep(0.1)
+        time.sleep(0.2)
         self.move_tcp_to(target=target, v=v, dt=dt)
-        time.sleep(0.1)
+        time.sleep(0.2)
         self.move_jaw_to(target=0.8, omega=omega, dt=dt)
 
     def request_marker(self, v, dt):
@@ -151,7 +151,7 @@ def main(args=None):
     omega = 0.1
     dt = 0.01
     home = [0.0, 0.0, -0.12]
-    shape = "+"
+    shape = "X"
 
     if(shape in shapes.keys()):
         psm.draw_shape(shape=shape, v=v, omega=omega, dt=dt)
