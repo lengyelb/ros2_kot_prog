@@ -14,10 +14,14 @@ class MarkerFactory(Node):
 
         self.DVRK_TCP: PoseStamped = None 
 
-        self.grab_error = 0.002
-        self.tcp_offset = 0.008
-        self.timeout = 2
-        
+        self.declare_parameter('grab_error', 0.002)
+        self.declare_parameter('tcp_offset', 0.008)
+        self.declare_parameter('debounce_timeout', 2)
+
+        self.grab_error = self.get_parameter('grab_error').get_parameter_value().double_value
+        self.tcp_offset = self.get_parameter('tcp_offset').get_parameter_value().double_value
+        self.timeout = self.get_parameter('debounce_timeout').get_parameter_value().integer_value
+
         self.last_press = self.get_clock().now() - rclpy.time.Duration(seconds=self.timeout)
         self.counter = 0
 
@@ -65,7 +69,10 @@ class MarkerFactory(Node):
 
     def add_marker(self):
         self.get_logger().info(f"Creating a new Interactive Marker Node, ID: {self.counter}")
-        interactive_marker = InteractiveMarker(position=[random.uniform(0.1, -0.1), random.uniform(0.1, -0.1), random.uniform(-0.1, -0.2)], id=self.counter)
+
+
+        position=[random.uniform(0.1, -0.1), random.uniform(0.1, -0.1), random.uniform(-0.1, -0.2)]
+        interactive_marker = InteractiveMarker(position=position, id=self.counter)
         self.interactiveMarkers.append(interactive_marker)
         self.executor.add_node(interactive_marker)
         self.counter += 1

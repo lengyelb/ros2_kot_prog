@@ -6,21 +6,20 @@ from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 
 class InteractiveMarker(Node):
-    def __init__(self, position, id):
+    def __init__(self, position, id, grab_error = 0.002, tcp_offset = 0.008):
         super().__init__('interactive_marker')
 
         self.DVRK_TCP: PoseStamped = None 
         self.DVRK_Jaw: JointState = None
         self.grabbed = False
 
-        self.grab_error = 0.002
-        self.tcp_offset = 0.008
+        self.grab_error = grab_error
+        self.tcp_offset = tcp_offset
 
         self.TCPSubscription = self.create_subscription(PoseStamped, '/PSM1/measured_cp', self.TCP_Callback, 10)
         self.JawSubscription = self.create_subscription(JointState, '/PSM1/jaw/measured_js', self.JAW_Callback,10)
 
-        timer_period = 0.05
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timer = self.create_timer(0.05, self.timer_callback)
 
         self.publisher_ = self.create_publisher(Marker, 'markers', 10)
 

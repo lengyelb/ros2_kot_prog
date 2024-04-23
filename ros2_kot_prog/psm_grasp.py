@@ -18,8 +18,25 @@ class PSM(Node):
         self.Markers: list[Marker] = []
         self.MarkerRequester: Marker = None
         self.marker_num = 0
+        self.home_coords = [0.0, 0.0, -0.12]
 
-        self.tcp_offset = 0.008
+        self.declare_parameter('v', 0.005)
+        self.declare_parameter('dt', 0.01)
+        self.declare_parameter('omega', 0.1)
+        self.declare_parameter('tcp_offset', 0.008)
+        self.declare_parameter('shape', 'X')
+
+        self.v = self.get_parameter('v').get_parameter_value().double_value
+        self.dt = self.get_parameter('dt').get_parameter_value().double_value
+        self.omega = self.get_parameter('omega').get_parameter_value().double_value
+        self.tcp_offset = self.get_parameter('tcp_offset').get_parameter_value().double_value
+        self.shape = self.get_parameter('shape').get_parameter_value().string_value
+
+        self.get_logger().info(f"v {self.v}")
+        self.get_logger().info(f"dt {self.dt}")
+        self.get_logger().info(f"omega {self.omega}")
+        self.get_logger().info(f"tcp_offset {self.tcp_offset}")
+        self.get_logger().info(f"shape {self.shape}")
 
         self.TCPSubscription = self.create_subscription(PoseStamped, '/PSM1/measured_cp', self.TCP_Callback, 10)
         self.JawSubscription = self.create_subscription(JointState, '/PSM1/jaw/measured_js', self.JAW_Callback,10) 
@@ -60,7 +77,7 @@ class PSM(Node):
             self.get_logger().info('Waiting for subsriptions...')
             rclpy.spin_once(self)
     
-    def move_tcp_to(self, target, v, dt):
+    def move_tcp_to(self, target):
         self.wait_for_Subscriptions()
         msg = self.TCP
 
@@ -70,13 +87,13 @@ class PSM(Node):
         pos_des_np = np.array(target)
 
         distance = np.linalg.norm(pos_des_np-pos_curr_np)/1000
-        T = distance/v
-        N = int(math.floor(T / dt))
+        T = distance/self.v
+        N = int(math.floor(T / self.dt))
         x = np.linspace(self.TCP.pose.position.x, target[0], N)
         y = np.linspace(self.TCP.pose.position.y, target[1], N)
         z = np.linspace(self.TCP.pose.position.z, target[2], N)
 
-        self.loop_rate = self.create_rate(1.0 / dt, self.get_clock()) # Hz
+        self.loop_rate = self.create_rate(1.0 / self.dt, self.get_clock()) # Hz
         for i in range(N):
             if(not rclpy.ok()):
                 break
@@ -89,14 +106,14 @@ class PSM(Node):
             self.TCPPub.publish(msg)
             rclpy.spin_once(self)
 
-    def move_jaw_to(self, target, omega, dt):
+    def move_jaw_to(self, target):
         self.wait_for_Subscriptions()
 
         msg = self.Jaw
 
         distance = np.linalg.norm(target-self.Jaw.position[0])
-        T = distance/omega
-        N = math.floor(T / dt)
+        T = distance/self.omega
+        N = math.floor(T / self.dt)
         tr_jaw = np.linspace(self.Jaw.position[0], target, N)
 
         loop_rate = self.create_rate(100, self.get_clock()) # Hz
@@ -109,59 +126,51 @@ class PSM(Node):
             self.JawPub.publish(msg)
             rclpy.spin_once(self)
     
-    def grab_marker(self, v, omega, dt):
+    def grab_marker(self):
         self.wait_for_Subscriptions()
 
-        self.move_jaw_to(target=0.8, omega=omega, dt=dt)
+        self.move_jaw_to(target=0.8)
 
         marker_to_move = self.Markers[-1]
 
         self.move_tcp_to(target=[ marker_to_move.pose.position.x,
                                   marker_to_move.pose.position.y,
-                                  marker_to_move.pose.position.z+self.tcp_offset], v=v, dt=dt)
+                                  marker_to_move.pose.position.z+self.tcp_offset])
         
-        self.move_jaw_to(target=0.0, omega=omega, dt=dt)
+        self.move_jaw_to(target=0.0)
     
-    def move_marker_to(self, target, v, omega, dt):
-        self.grab_marker(v=v, omega=omega, dt=dt)
+    def move_marker_to(self, target):
+        self.grab_marker()
         time.sleep(0.2)
-        self.move_tcp_to(target=target, v=v, dt=dt)
+        self.move_tcp_to(target=target)
         time.sleep(0.2)
-        self.move_jaw_to(target=0.8, omega=omega, dt=dt)
+        self.move_jaw_to(target=0.8)
 
-    def request_marker(self, v, dt):
+    def request_marker(self):
         self.wait_for_Subscriptions()
         self.move_tcp_to(target=[ self.MarkerRequester.pose.position.x,
                                   self.MarkerRequester.pose.position.y,
-                                  self.MarkerRequester.pose.position.z+self.tcp_offset], v=v, dt=dt)
+                                  self.MarkerRequester.pose.position.z+self.tcp_offset])
         time.sleep(0.2)
 
-    def draw_shape(self, shape, v, omega, dt):
-        targets = shapes[shape]
+    def draw_shape(self):
+        if(self.shape not in shapes.keys()):
+            self.get_logger().info('The provided shape is invalid')
+            return
+
+        targets = shapes[self.shape]
         for target in targets:
-            self.request_marker(v=v, dt=dt)
+            self.request_marker()
             self.wait_for_marker()
-            self.move_marker_to(target=target, v=v, omega=omega, dt=dt)
+            self.move_marker_to(target=target)
+        
+        self.move_tcp_to(self.home_coords)
 
 def main(args=None):
     rclpy.init(args=args)
     psm = PSM()
 
-    v = 0.005
-    omega = 0.1
-    dt = 0.01
-    home = [0.0, 0.0, -0.12]
-    shape = "X"
-
-    if(shape in shapes.keys()):
-        psm.draw_shape(shape=shape, v=v, omega=omega, dt=dt)
-    
-    else:
-        psm.get_logger().info('The provided shape is invalid')
-
-    #Home the arm
-    psm.move_tcp_to(target=home, v=v, dt=dt)
-    psm.move_jaw_to(0.0, omega=omega, dt=dt)
+    psm.draw_shape()
 
     psm.destroy_node()
     rclpy.shutdown()
