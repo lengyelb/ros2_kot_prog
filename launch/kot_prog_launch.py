@@ -7,43 +7,43 @@ def generate_launch_description():
     v = DeclareLaunchArgument(
         'v',
         default_value='0.005',
-        description='Namespace for turtle 1'
+        description='The speed used by the robot during TCP movements'
     )
 
     dt = DeclareLaunchArgument(
         'dt',
         default_value='0.01',
-        description='Namespace for turtle 1'
+        description='dt or loop rate'
     )
 
     omega = DeclareLaunchArgument(
         'omega',
         default_value='0.1',
-        description='Namespace for turtle 1'
+        description='The angular speed to use durin JAW movements'
     )
 
     tcp_offset = DeclareLaunchArgument(
         'tcp_offset',
         default_value='0.008',
-        description='Namespace for turtle 1'
+        description='The offset between the tool center point and where the jaw grabs'
     )
 
     grab_error = DeclareLaunchArgument(
         'grab_error',
         default_value='0.002',
-        description='Namespace for turtle 1'
+        description='The maximum allowed error between tcp and different object to consider them grabbed'
     )
 
     shape = DeclareLaunchArgument(
         'shape',
         default_value='X',
-        description='Namespace for turtle 1'
+        description='The desired shape to be drawn using the markers (X , +, -)'
     )
 
     debounce_timeout = DeclareLaunchArgument(
         'debounce_timeout',
         default_value='2',
-        description='Namespace for turtle 1'
+        description='The debounce timeout between two marker requests'
     )
 
     v_value = LaunchConfiguration('v')
