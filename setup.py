@@ -22,7 +22,8 @@ setup(
         'console_scripts': [
             'psm_grasp = ros2_kot_prog.psm_grasp:main',
             'dummy_marker = ros2_kot_prog.dummy_marker:main',
-            'interactive_marker = ros2_kot_prog.interactive_marker:main'
+            'interactive_marker = ros2_kot_prog.interactive_marker:main',
+            'marker_factory = ros2_kot_prog.marker_factory:main'
         ],
     },
 )

@@ -33,7 +33,7 @@ class DummyMarker(Node):
         marker.color.a = 1.0 # Don't forget to set the alpha!
         marker.color.r = 0.0
         marker.color.g = 1.0
-        marker.color.b = 0.0;
+        marker.color.b = 0.0
 
         self.publisher_.publish(marker)
         self.i += 1

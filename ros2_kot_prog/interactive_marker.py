@@ -22,7 +22,7 @@ class InteractiveMarker(Node):
         timer_period = 0.05
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
-        self.publisher_ = self.create_publisher(Marker, 'dummy_target_marker', 10)
+        self.publisher_ = self.create_publisher(Marker, 'markers', 10)
 
         self.marker = Marker()
         self.marker.header.frame_id = 'PSM1_psm_base_link'
@@ -53,11 +53,9 @@ class InteractiveMarker(Node):
     
     def decide_grabbed(self):
         if(self.grabbed):
-            self.get_logger().info('I am currently grabbed!')
             self.grabbed = self.DVRK_Jaw.position[0] == 0.0
 
         else:
-            self.get_logger().info('I am currently not grabbed!')
             dvrk_pos_np = np.array([self.DVRK_TCP.pose.position.x,
                                     self.DVRK_TCP.pose.position.y,
                                     self.DVRK_TCP.pose.position.z-self.tcp_offset])
@@ -67,10 +65,8 @@ class InteractiveMarker(Node):
             
             distance_to_marker = np.linalg.norm(dvrk_pos_np-marker_pos_np)
 
-            self.get_logger().info(f"distance to tool = {distance_to_marker}")
             if(distance_to_marker <= self.grab_error):
                 self.grabbed = self.DVRK_Jaw.position[0] == 0.0
-
 
     def timer_callback(self):
         if (self.DVRK_TCP is not None and self.DVRK_Jaw is not None):
@@ -88,8 +84,6 @@ class InteractiveMarker(Node):
             self.marker.color.r = 0.0
             self.marker.color.g = 1.0
             self.marker.color.b = 0.0
-
-        self.publisher_.publish(self.marker)
         
 
 def main(args=None):
