@@ -30,11 +30,15 @@ Launch RViz
 
 After launching RViz, you need to turn on and home the robot using the dvrk main console
 
+![Screenshot 2024-04-24 103045](https://github.com/lengyelb/ros2_kot_prog/assets/92853275/dc60487c-9845-4093-b728-acfece248687)
+
 Launch to projects launch file
 
     ros2 launch ros2_kot_prog kot_prog_launch.py
 
 While the project is running, you need to add the approriate views to RViz
+
+![Screenshot 2024-04-24 103525](https://github.com/lengyelb/ros2_kot_prog/assets/92853275/8b669018-7f9b-4b1d-9137-33978a27e227)
 
 ## Launch Parameters
 
